@@ -623,3 +623,7 @@ git subtree push --prefix . origin gh-pages
 ---
 
 *This file should be updated as the prototype evolves. Keep it concise and actionable.*
+
+### Commit message Guidelines
+
+- No attribution to claude or anthropic. No emojis, and keeop things formal but not verbose. Always straightforward commit messages. 
