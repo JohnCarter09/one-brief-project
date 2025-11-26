@@ -14,7 +14,15 @@
  */
 class Particle {
   constructor(targetX, targetY, config = {}) {
-    // Target position (equilibrium point for spring)
+    // Store original target position (from SVG, never changes)
+    this.originalTargetX = targetX;
+    this.originalTargetY = targetY;
+
+    // Offset from logo centroid (static, calculated during init)
+    this.offsetX = config.offsetX ?? 0;
+    this.offsetY = config.offsetY ?? 0;
+
+    // Target position (equilibrium point for spring - updated dynamically)
     this.targetX = targetX;
     this.targetY = targetY;
 
@@ -36,6 +44,8 @@ class Particle {
     this.size = config.size ?? 2 + Math.random() * 2; // 2-4px variation for organic feel
     this.color = config.color ?? '#FFFFFF';
     this.opacity = config.opacity ?? 1.0;
+    this.targetOpacity = 1.0; // Target opacity for fade in/out
+    this.opacityTransitionSpeed = 0.1; // How fast opacity changes (0-1)
 
     // Breathing animation (idle state)
     this.breathPhase = Math.random() * Math.PI * 2; // Random phase for organic distribution
@@ -55,6 +65,10 @@ class Particle {
    * @param {boolean} isSettled - If true, apply breathing; if false, skip for performance
    */
   update(time, isSettled = false) {
+    // Smoothly transition opacity toward target
+    const opacityDiff = this.targetOpacity - this.opacity;
+    this.opacity += opacityDiff * this.opacityTransitionSpeed;
+
     // Calculate breathing offset (subtle oscillation around target)
     let breathOffsetX = 0;
     let breathOffsetY = 0;
@@ -212,6 +226,10 @@ function extractParticlePositions(image, samplingDensity = 2, alphaThreshold = 1
  * @returns {Array<Particle>} Array of initialized particles
  */
 function initializeParticles(targetPositions, canvasBounds, physicsConfig = {}) {
+  // Calculate logo centroid
+  const centroidX = targetPositions.reduce((sum, p) => sum + p.x, 0) / targetPositions.length;
+  const centroidY = targetPositions.reduce((sum, p) => sum + p.y, 0) / targetPositions.length;
+
   const particles = [];
 
   for (const target of targetPositions) {
@@ -223,6 +241,8 @@ function initializeParticles(targetPositions, canvasBounds, physicsConfig = {}) 
       startX,
       startY,
       color: target.color,
+      offsetX: target.x - centroidX,  // Store offset from centroid
+      offsetY: target.y - centroidY,
       springStrength: physicsConfig.springStrength ?? 0.02,
       friction: physicsConfig.friction ?? 0.92,
       size: physicsConfig.size ?? (2 + Math.random() * 2),
@@ -277,9 +297,6 @@ function updateParticles(particles, time, mouseState = null) {
  * @param {Array<Particle>} particles - Particles to render
  */
 function renderParticles(ctx, particles) {
-  // Reset global alpha
-  ctx.globalAlpha = 1.0;
-
   // Batch particles by color for fewer state changes
   const colorBatches = new Map();
 
@@ -295,6 +312,9 @@ function renderParticles(ctx, particles) {
     ctx.fillStyle = color;
 
     for (const particle of batch) {
+      // Set opacity for this particle
+      ctx.globalAlpha = particle.opacity;
+
       // Round positions for pixel-perfect rendering
       ctx.fillRect(
         Math.round(particle.x - particle.size / 2),
@@ -304,6 +324,9 @@ function renderParticles(ctx, particles) {
       );
     }
   }
+
+  // Reset global alpha
+  ctx.globalAlpha = 1.0;
 }
 
 /**
@@ -363,6 +386,20 @@ function getReducedMotionConfig() {
   };
 }
 
+/**
+ * Calculate centroid (geometric center) of target positions
+ *
+ * @param {Array<{x: number, y: number}>} targetPositions - Array of positions
+ * @returns {{x: number, y: number}} Centroid coordinates
+ */
+function calculateCentroid(targetPositions) {
+  if (targetPositions.length === 0) return { x: 0, y: 0 };
+  return {
+    x: targetPositions.reduce((sum, p) => sum + p.x, 0) / targetPositions.length,
+    y: targetPositions.reduce((sum, p) => sum + p.y, 0) / targetPositions.length
+  };
+}
+
 // Export all functions and classes
 export {
   Particle,
@@ -371,5 +408,6 @@ export {
   updateParticles,
   renderParticles,
   getSpringPreset,
-  getReducedMotionConfig
+  getReducedMotionConfig,
+  calculateCentroid
 };

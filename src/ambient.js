@@ -54,6 +54,10 @@ const DEFAULT_CONFIG = {
   logoSvgUrl: null,
   useSamplingDensity: 2,
   alphaThreshold: 128,
+  // Logo following behavior
+  logoSpringStrength: 0.015,    // How quickly logo follows mouse
+  logoFriction: 0.93,            // Logo movement damping
+  enableLogoFollow: true,        // Toggle feature on/off
 };
 
 /**
@@ -76,7 +80,7 @@ export function createAmbientHeader(canvas, options = {}) {
   let lastFpsUpdate = 0;
 
   // Canvas and rendering context
-  const ctx = canvas.getContext('2d', { alpha: false });
+  const ctx = canvas.getContext('2d', { alpha: true });
   let dpr = window.devicePixelRatio || 1;
   let width = 0;
   let height = 0;
@@ -95,6 +99,21 @@ export function createAmbientHeader(canvas, options = {}) {
     targetX: -1000,
     targetY: -1000,
     isActive: false,
+  };
+
+  // Logo state (for smooth mouse following)
+  const logoState = {
+    centerX: 0,          // Current logo center position
+    centerY: 0,
+    targetCenterX: 0,    // Where logo wants to be (mouse or canvas center)
+    targetCenterY: 0,
+    velocityX: 0,        // Logo's own velocity for spring physics
+    velocityY: 0,
+    initialCenterX: 0,   // Original center position (canvas center)
+    initialCenterY: 0,
+    springStrength: config.logoSpringStrength,  // From config
+    friction: config.logoFriction,              // From config
+    isFollowingMouse: false
   };
 
   // Accessibility: Check for reduced motion preference
@@ -136,6 +155,9 @@ export function createAmbientHeader(canvas, options = {}) {
 
     // Initialize noise field
     noiseField = new Float32Array(cols * rows);
+
+    // Initialize logo center position
+    initializeLogoState();
 
     // Initialize particles
     const physicsConfig = getSpringPreset(config.particleSpringFeel);
@@ -220,6 +242,21 @@ export function createAmbientHeader(canvas, options = {}) {
   }
 
   /**
+   * Initialize logo center position to canvas center
+   */
+  function initializeLogoState() {
+    logoState.centerX = width / 2;
+    logoState.centerY = height / 2;
+    logoState.targetCenterX = width / 2;
+    logoState.targetCenterY = height / 2;
+    logoState.initialCenterX = width / 2;
+    logoState.initialCenterY = height / 2;
+    logoState.velocityX = 0;
+    logoState.velocityY = 0;
+    logoState.isFollowingMouse = false;
+  }
+
+  /**
    * Updates noise field for contour generation
    * @param {number} currentTime - Current animation time
    */
@@ -277,6 +314,42 @@ export function createAmbientHeader(canvas, options = {}) {
   }
 
   /**
+   * Update logo center position using spring physics
+   */
+  function updateLogoPosition() {
+    // Calculate displacement from target
+    const dx = logoState.targetCenterX - logoState.centerX;
+    const dy = logoState.targetCenterY - logoState.centerY;
+
+    // Apply spring force
+    const forceX = dx * logoState.springStrength;
+    const forceY = dy * logoState.springStrength;
+
+    // Update velocity
+    logoState.velocityX += forceX;
+    logoState.velocityY += forceY;
+
+    // Apply friction
+    logoState.velocityX *= logoState.friction;
+    logoState.velocityY *= logoState.friction;
+
+    // Update position
+    logoState.centerX += logoState.velocityX;
+    logoState.centerY += logoState.velocityY;
+  }
+
+  /**
+   * Update all particle target positions based on logo center
+   */
+  function updateParticleTargets() {
+    for (const particle of particles) {
+      // New target = current logo center + particle's offset from centroid
+      particle.targetX = logoState.centerX + particle.offsetX;
+      particle.targetY = logoState.centerY + particle.offsetY;
+    }
+  }
+
+  /**
    * Main animation loop with fixed timestep
    * @param {DOMHighResTimeStamp} currentTime - Current timestamp from RAF
    */
@@ -303,6 +376,12 @@ export function createAmbientHeader(canvas, options = {}) {
     updateMouse();
     updateNoiseField(time);
 
+    // Update logo center position with spring physics
+    updateLogoPosition();
+
+    // Translate all particle targets based on logo center
+    updateParticleTargets();
+
     // Build mouse state for particle interaction
     const mouseState = mouse.isActive ? {
       active: true,
@@ -312,7 +391,7 @@ export function createAmbientHeader(canvas, options = {}) {
       strength: config.mouseForce
     } : null;
 
-    // Update particles with spring physics
+    // Update particles with spring physics (they'll now spring toward moving targets)
     updateParticles(particles, time, mouseState);
 
     // Render
@@ -326,9 +405,8 @@ export function createAmbientHeader(canvas, options = {}) {
    * Renders a complete frame
    */
   function renderFrame() {
-    // Clear canvas with background color
-    ctx.fillStyle = config.backgroundColor;
-    ctx.fillRect(0, 0, width, height);
+    // Clear canvas (transparent to show background image)
+    ctx.clearRect(0, 0, width, height);
 
     // Draw contours first (background layer)
     renderContours();
@@ -347,6 +425,19 @@ export function createAmbientHeader(canvas, options = {}) {
     clearTimeout(resizeTimeout);
     resizeTimeout = setTimeout(() => {
       setupCanvas();
+
+      // Recalculate logo initial center position
+      logoState.initialCenterX = width / 2;
+      logoState.initialCenterY = height / 2;
+
+      // If not following mouse, reset to new center
+      if (!logoState.isFollowingMouse) {
+        logoState.centerX = width / 2;
+        logoState.centerY = height / 2;
+        logoState.targetCenterX = width / 2;
+        logoState.targetCenterY = height / 2;
+      }
+
       initializeSystems();
     }, 250);
   }
@@ -362,6 +453,11 @@ export function createAmbientHeader(canvas, options = {}) {
     mouse.x = mouse.targetX;
     mouse.y = mouse.targetY;
     mouse.isActive = true;
+
+    // Set logo target to follow mouse
+    logoState.targetCenterX = mouse.x;
+    logoState.targetCenterY = mouse.y;
+    logoState.isFollowingMouse = true;
   }
 
   /**
@@ -373,6 +469,36 @@ export function createAmbientHeader(canvas, options = {}) {
     mouse.targetY = -1000;
     mouse.x = -1000;
     mouse.y = -1000;
+
+    // Keep logo at current position (don't snap back to center)
+    logoState.isFollowingMouse = false;
+  }
+
+  /**
+   * Handles mouse entering interactive element (button, link)
+   */
+  function handleInteractiveEnter() {
+    // Fade out particles smoothly
+    for (const particle of particles) {
+      particle.targetOpacity = 0;
+    }
+  }
+
+  /**
+   * Handles mouse leaving interactive element
+   */
+  function handleInteractiveLeave() {
+    // Fade particles back in
+    for (const particle of particles) {
+      particle.targetOpacity = 1.0;
+    }
+
+    // Return to following mouse if mouse is still in canvas
+    if (mouse.isActive) {
+      logoState.targetCenterX = mouse.x;
+      logoState.targetCenterY = mouse.y;
+      logoState.isFollowingMouse = true;
+    }
   }
 
   /**
@@ -388,6 +514,11 @@ export function createAmbientHeader(canvas, options = {}) {
     mouse.x = mouse.targetX;
     mouse.y = mouse.targetY;
     mouse.isActive = true;
+
+    // Set logo target to follow touch
+    logoState.targetCenterX = mouse.x;
+    logoState.targetCenterY = mouse.y;
+    logoState.isFollowingMouse = true;
   }
 
   /**
@@ -417,6 +548,13 @@ export function createAmbientHeader(canvas, options = {}) {
     canvas.addEventListener('mouseleave', handleMouseLeave);
     canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
     canvas.addEventListener('touchend', handleTouchEnd);
+
+    // Add hover listeners to interactive elements to hide particles
+    const interactiveElements = document.querySelectorAll('.header-content a, .header-content button');
+    interactiveElements.forEach(element => {
+      element.addEventListener('mouseenter', handleInteractiveEnter);
+      element.addEventListener('mouseleave', handleInteractiveLeave);
+    });
 
     animationId = requestAnimationFrame(animate);
   }
@@ -461,6 +599,14 @@ export function createAmbientHeader(canvas, options = {}) {
   function updateConfig(newConfig) {
     Object.assign(config, newConfig);
 
+    // Update logo spring parameters if changed
+    if (newConfig.logoSpringStrength !== undefined) {
+      logoState.springStrength = newConfig.logoSpringStrength;
+    }
+    if (newConfig.logoFriction !== undefined) {
+      logoState.friction = newConfig.logoFriction;
+    }
+
     // Reinitialize if structural parameters changed
     if (newConfig.gridSize || newConfig.particleCount || newConfig.particleSpringFeel) {
       initializeSystems();
@@ -484,6 +630,13 @@ export function createAmbientHeader(canvas, options = {}) {
     canvas.removeEventListener('mouseleave', handleMouseLeave);
     canvas.removeEventListener('touchmove', handleTouchMove);
     canvas.removeEventListener('touchend', handleTouchEnd);
+
+    // Remove interactive element listeners
+    const interactiveElements = document.querySelectorAll('.header-content a, .header-content button');
+    interactiveElements.forEach(element => {
+      element.removeEventListener('mouseenter', handleInteractiveEnter);
+      element.removeEventListener('mouseleave', handleInteractiveLeave);
+    });
 
     // Clear canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height);
