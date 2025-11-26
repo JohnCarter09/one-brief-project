@@ -64,6 +64,64 @@
     </section>
   </main>
 
-  <script type="module" src="./src/ambient.js"></script>
+  <script type="module">
+    import { createAmbientHeader } from './src/ambient.js';
+
+    const canvas = document.getElementById('ambient-canvas');
+
+    // Initialize with logo
+    const ambient = createAmbientHeader(canvas, {
+      logoSrc: './assets/OneBrief.svg',
+      particleCount: 500,
+      mouseRadius: 100,
+      timeSpeed: 0.0003,
+    });
+
+    // Wire up controls
+    const controls = {
+      particleCount: document.getElementById('particle-count'),
+      contourSpeed: document.getElementById('contour-speed'),
+      springStrength: document.getElementById('spring-strength'),
+      mouseRadius: document.getElementById('mouse-radius'),
+    };
+
+    const values = {
+      particleCount: document.getElementById('particle-count-value'),
+      contourSpeed: document.getElementById('contour-speed-value'),
+      springStrength: document.getElementById('spring-strength-value'),
+      mouseRadius: document.getElementById('mouse-radius-value'),
+    };
+
+    // Update handlers
+    controls.particleCount.addEventListener('input', (e) => {
+      values.particleCount.textContent = e.target.value;
+      ambient.updateConfig({ particleCount: parseInt(e.target.value) });
+    });
+
+    controls.contourSpeed.addEventListener('input', (e) => {
+      values.contourSpeed.textContent = e.target.value;
+      ambient.updateConfig({ timeSpeed: parseFloat(e.target.value) });
+    });
+
+    controls.springStrength.addEventListener('input', (e) => {
+      values.springStrength.textContent = e.target.value;
+      ambient.updateConfig({ springStrength: parseFloat(e.target.value) });
+    });
+
+    controls.mouseRadius.addEventListener('input', (e) => {
+      values.mouseRadius.textContent = e.target.value;
+      ambient.updateConfig({ mouseRadius: parseInt(e.target.value) });
+    });
+
+    // Motion toggle
+    const motionToggle = document.getElementById('motion-toggle');
+    motionToggle.addEventListener('click', () => {
+      ambient.togglePause();
+      const paused = ambient.isPaused;
+      motionToggle.setAttribute('aria-pressed', paused);
+      motionToggle.setAttribute('aria-label', paused ? 'Play animation' : 'Pause animation');
+      motionToggle.querySelector('span').textContent = paused ? '▶' : '⏸';
+    });
+  </script>
 </body>
 </html>
