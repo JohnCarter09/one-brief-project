@@ -15,6 +15,35 @@ An interactive hero header featuring a particle-based Onebrief logo animation th
 
 ---
 
+## Quick Start
+
+Get the prototype running locally in under a minute:
+
+```bash
+# Clone the repository
+git clone https://github.com/JohnCarter09/one-brief-project.git
+cd one-brief-project
+
+# Start a local server (choose one)
+npx serve .
+# or
+python -m http.server 8000
+
+# Open in browser
+# Navigate to http://localhost:3000 (or :8000 for Python)
+```
+
+**Requirements:**
+- Modern browser with ES Module support (Chrome, Firefox, Safari, Edge)
+- No build step or dependencies to install
+
+**What to try:**
+- Move your mouse over the hero area — the logo follows your cursor
+- Hover over buttons/links — particles fade out smoothly
+- Test on mobile/tablet — touch interactions work too
+
+---
+
 ## Intent & Brand Rationale
 
 **What feeling are we conveying?**
