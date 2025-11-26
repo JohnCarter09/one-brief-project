@@ -4,7 +4,7 @@
 > **Author:** John Carter
 > **Date:** November 2025
 
-An interactive hero header featuring a particle-based logo animation that follows the user's mouse cursor with smooth spring physics and intelligent fade interactions.
+An interactive hero header featuring a particle-based Onebrief logo animation that follows the user's mouse cursor with smooth spring physics and intelligent fade interactions.
 
 ![Prototype Preview](./assets/preview.gif)
 
