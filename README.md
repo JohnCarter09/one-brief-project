@@ -4,43 +4,184 @@
 > **Author:** John Carter
 > **Date:** November 2025
 
-An interactive hero header featuring a particle-based logo animation with mouse-following behavior and smooth fade interactions. Built with vanilla JavaScript and Canvas 2D for performance and minimal overhead.
+An interactive hero header featuring a particle-based logo animation that follows the user's mouse cursor with smooth spring physics and intelligent fade interactions.
 
-## 🎯 Overview
+![Prototype Preview](./assets/preview.gif)
 
-This prototype creates an elegant, interactive header experience where the Onebrief logo is rendered as a particle system that smoothly follows the user's mouse cursor. The particles intelligently fade out when hovering over interactive elements (buttons, navigation) to maintain UI clarity.
+---
 
-**Key Interaction:**
-- Particle logo follows mouse movement with smooth spring physics
-- Particles fade out when hovering over buttons/navigation links
-- No jarring snap-backs or off-screen movements
-- Clean, polished interaction that feels responsive and intentional
+## Intent & Brand Rationale
 
-## ✨ Features
+**What feeling are we conveying?**
 
-- **Mouse-Following Logo** — Particle logo smoothly tracks cursor position with spring physics
-- **Smart Fade Interactions** — Particles gracefully fade out over interactive elements
-- **Spring Physics** — Natural, organic motion using custom spring simulation
-- **Responsive Layout** — Full-width navigation bar with aligned hero content grid
-- **Lightweight** — Vanilla JavaScript, no framework dependencies
-- **Performance Optimized** — Canvas 2D rendering with batched draw calls
-- **Accessibility Ready** — Proper pointer events handling for all interactive elements
+This prototype creates a sense of **playful control** and **real-time responsiveness** that reinforces Onebrief's core values:
 
-## 🚀 Getting Started
+- **Real-time Collaboration** — The logo responds instantly to user input, mirroring the collaborative nature of Onebrief's platform
+- **Precision & Control** — Direct manipulation of particles creates a tangible sense of control over complex systems
+- **Elegance Under Complexity** — Hundreds of particles move in unison, demonstrating order emerging from distributed parts (the essence of command operations)
+- **Engagement Without Distraction** — Particles fade when hovering over UI elements, keeping focus on the task at hand
 
-### Local Development
+The mouse-following behavior transforms a static logo into a living, responsive element that invites exploration while maintaining professional polish through smooth physics and intelligent fade-out when users need to interact with buttons and navigation.
 
-```bash
-# Serve locally (no build step required)
-npx serve .
+---
 
-# Or use Python
-python -m http.server 8000
+## Technical Approach
 
-# Open http://localhost:8000
+### Stack
+
+- **Canvas 2D API** — Chosen for performance and fine-grained control over particle rendering
+- **Vanilla JavaScript** — ES Modules with no build step for simplicity and transparency
+- **Custom Spring Physics** — Implements Hooke's Law for natural, organic motion
+- **simplex-noise** — 2kb library for procedural background contours (currently disabled)
+
+### Architecture
+
+**Core Systems:**
+
+1. **Particle Extraction** — Logo SVG is sampled via `canvas.getImageData()` to create particle target positions
+2. **Mouse-Following Logo** — Logo center position uses spring physics to track cursor; particles maintain their offsets from center
+3. **Fade Interaction** — Interactive elements (buttons, links) trigger smooth opacity transitions via `targetOpacity` interpolation
+4. **Pointer Events Architecture** — CSS `pointer-events: none` on content container allows canvas to receive mouse events while maintaining UI interactivity
+
+**Key Technical Decisions:**
+
+| Decision | Rationale |
+|----------|-----------|
+| **Fade vs. Snap-Back** | Fading out is smoother and less jarring than snapping particles to center or off-screen |
+| **Spring Physics** | Provides natural momentum and smooth interruption handling vs. linear easing |
+| **Canvas 2D vs. WebGL** | Canvas 2D is simpler and sufficient for 500 particles at 60fps; WebGL would add complexity without meaningful benefit at this scale |
+| **Pointer Events Pattern** | Allows canvas to receive mouse events over hero text while keeping buttons/links interactive |
+| **No Build System** | ES Modules run directly in browser for transparency and easy integration |
+
+### Configuration
+
+```javascript
+{
+  logoSvgUrl: './assets/OneBrief.svg',
+  particleCount: 500,
+  mouseRadius: 150,              // Repulsion radius
+  mouseForce: 1.5,               // Repulsion strength
+  logoSpringStrength: 0.2,       // Logo follow responsiveness
+  logoFriction: 0.85,            // Movement damping
+}
 ```
 
-### Quick Integration
+---
+
+## AI Usage
+
+**Development Approach:**
+
+This prototype was built using AI assistance for rapid prototyping and iteration:
+
+1. **Initial Implementation** — AI generated the base particle system, spring physics, and canvas rendering pipeline
+2. **Interaction Design** — Multiple iterations to tune mouse-following behavior:
+   - Started with particles snapping to center on hover (felt jarring)
+   - Tried moving particles off-screen (looked broken)
+   - Final solution: smooth fade-out via opacity transitions
+3. **Layout & Alignment** — AI helped debug CSS pointer-events architecture when hero text was blocking canvas mouse events
+4. **Physics Tuning** — Adjusted spring constants through experimentation
+5. **Documentation** — AI assisted with README structure and technical explanations
+
+**Key Prompts Used:**
+
+- "The mouse effect is not working, can we fix that?" → Led to pointer-events discovery
+- "The particle logo shoots quickly off the page, I'd like it to just fade out" → Opacity transition solution
+- "The cards should align with the hero content on the same vertical grid" → Layout debugging
+
+**AI Strengths:**
+
+- Rapid prototyping of physics and rendering systems
+- Debugging CSS layout issues
+- Suggesting alternative approaches when initial solutions felt wrong
+
+**Human Contributions:**
+
+- UX judgment ("this feels wonky, let's revert")
+- Design direction (fade vs. snap-back decision)
+- Final parameter tuning for "feel"
+- Architecture review and code organization
+
+---
+
+## Performance & Accessibility
+
+### Performance
+
+| Metric | Target | Implementation |
+|--------|--------|----------------|
+| Frame Rate | 60fps | Batched canvas rendering with single `fillStyle` per color group |
+| Particle Count | 500 | Adjustable based on device capabilities |
+| CPU Usage | <5% idle | Optimized update loop with early exits for settled particles |
+| Bundle Size | ~10-12kb | Vanilla JS + 2kb noise library via CDN |
+
+**Optimizations:**
+- Batched rendering reduces context state changes
+- Particles skip "breathing" animation when not settled (performance optimization)
+- Mouse interaction only updates when active
+- TypedArrays considered for future optimization (not yet implemented)
+
+### Accessibility
+
+**Current Implementation:**
+- Canvas marked `aria-hidden="true"` (decorative only)
+- All interactive elements remain keyboard accessible
+- No flashing content (well under WCAG 3 flashes/second threshold)
+
+**Not Yet Implemented:**
+- `prefers-reduced-motion` support (would show static logo)
+- Manual pause/play control (WCAG SC 2.2.2)
+- Focus indicators for keyboard navigation
+
+---
+
+## Next Steps for Production
+
+If given more time, I would prioritize:
+
+### 1. Accessibility Compliance (Highest Priority)
+
+```javascript
+// Respect user motion preferences
+const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+if (reducedMotion.matches) {
+  renderStaticLogo();  // Skip animation
+}
+```
+
+- Add pause/play button for WCAG SC 2.2.2 compliance
+- Implement `prefers-reduced-motion` with static fallback
+- Add keyboard focus indicators
+
+### 2. Performance Enhancements
+
+- **Particle Pooling** — Use TypedArrays for zero-allocation updates
+- **Adaptive Quality** — Reduce particle count on low-end devices
+- **Offscreen Canvas** — Move rendering to Web Worker for smoother main thread
+
+### 3. Responsive & Mobile
+
+- Touch gesture support (drag logo on mobile)
+- Reduced particle count on mobile (200-300 vs 500)
+- Test on real devices for interaction feel
+
+### 4. Polish & Features
+
+- Subtle "breathing" animation when particles are settled
+- Color shift on hover over different sections
+- Logo state morphing (loading → assembled states)
+- Click ripple effect from cursor position
+
+### 5. Developer Experience
+
+- TypeScript definitions for better IDE support
+- React/Vue component wrappers
+- Storybook for parameter tuning
+- Performance profiling documentation
+
+---
+
+## Quick Integration
 
 **Step 1: HTML Structure**
 
@@ -48,14 +189,7 @@ python -m http.server 8000
 <header class="site-header">
   <canvas id="ambient-canvas" aria-hidden="true"></canvas>
   <div class="header-content">
-    <nav>
-      <!-- Your navigation -->
-      <button class="cta-button">Get Started</button>
-    </nav>
-    <section class="hero">
-      <h1>Your Hero Title</h1>
-      <p>Your hero description</p>
-    </section>
+    <!-- Your navigation and hero content -->
   </div>
 </header>
 ```
@@ -63,278 +197,38 @@ python -m http.server 8000
 **Step 2: Required CSS (Critical!)**
 
 ```css
-.site-header {
-  position: relative;
-  width: 100%;
-  height: 100vh;
-  overflow: hidden;
-}
-
-#ambient-canvas {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  display: block;
-}
-
-/* CRITICAL: Allow canvas to receive mouse events */
 .header-content {
   position: relative;
   z-index: 10;
-  pointer-events: none;  /* Make container transparent to mouse events */
-}
-
-/* Re-enable pointer events for interactive elements */
-.header-content a,
-.header-content button,
-.header-content input {
-  pointer-events: auto;
-}
-```
-
-**Step 3: JavaScript Initialization**
-
-```html
-<script type="module">
-  import { createAmbientHeader } from './src/ambient.js';
-
-  const canvas = document.getElementById('ambient-canvas');
-  const ambient = createAmbientHeader(canvas, {
-    logoSvgUrl: './assets/YourLogo.svg',  // Path to your logo
-    particleCount: 500,                    // Adjust for performance
-    mouseRadius: 150,                      // Mouse repulsion radius
-    mouseForce: 1.5,                       // Repulsion strength
-    logoSpringStrength: 0.2,               // Logo follow responsiveness
-    logoFriction: 0.85,                    // Logo movement smoothness
-    showContours: false,                   // Background contours (optional)
-  });
-</script>
-```
-
-**Step 4: Include Required Files**
-
-Copy these files to your project:
-- `src/ambient.js` - Main orchestrator
-- `src/particles.js` - Particle system
-- `src/contours.js` - Background contours
-- `src/spring.js` - Physics utilities
-- `src/noise.js` - Noise generation
-- Your logo SVG file
-
-That's it! The particle logo will now follow your mouse cursor and fade out when hovering over buttons and links.
-
-## 📁 Project Structure
-
-```
-onebrief-ambient/
-├── index.html              # Demo page with full header layout
-├── src/
-│   ├── ambient.js          # Main orchestrator module
-│   ├── contours.js         # Marching squares contour generation
-│   ├── particles.js        # Particle system with spring physics
-│   ├── spring.js           # Physics utilities
-│   └── noise.js            # Simplex noise wrapper
-├── styles/
-│   └── ambient.css         # CSS with pointer-events optimization
-├── assets/
-│   ├── OneBrief.svg        # Logo source for particle extraction
-│   ├── nav-logo.svg        # Navigation logo
-│   └── hero_image.png      # Hero background image
-├── CLAUDE.md               # Development guide
-└── README.md               # This file
-```
-
-## ⚙️ Configuration
-
-### Core Parameters
-
-```javascript
-const config = {
-  // Logo & Particles
-  logoSvgUrl: './assets/OneBrief.svg',
-  particleCount: 500,              // Number of particles in logo
-  useSamplingDensity: 3,           // Logo sampling density (higher = fewer particles)
-  alphaThreshold: 128,             // Alpha threshold for particle extraction
-
-  // Mouse Interaction
-  mouseRadius: 150,                // Mouse repulsion radius (px)
-  mouseForce: 1.5,                 // Repulsion force strength
-
-  // Logo Following Behavior
-  logoSpringStrength: 0.2,         // How quickly logo follows mouse
-  logoFriction: 0.85,              // Logo movement damping
-  enableLogoFollow: true,          // Toggle mouse-following
-
-  // Visual Settings
-  showContours: false,             // Background contour lines
-  showParticles: true,             // Particle rendering
-};
-```
-
-### Spring Physics Presets
-
-The particle system uses spring physics for natural motion. Available presets in `particles.js`:
-
-| Preset | Spring Strength | Friction | Feel |
-|--------|----------------|----------|------|
-| `smooth` | 0.02 | 0.92 | Default - balanced response |
-| `snappy` | 0.04 | 0.95 | Quick, responsive |
-| `bouncy` | 0.025 | 0.88 | Playful overshoot |
-| `heavy` | 0.015 | 0.94 | Slow, weighty |
-
-## 🎨 Layout & Alignment
-
-The layout uses a consistent 1440px max-width container with aligned content:
-
-**Navigation Bar:**
-- Full-width within container
-- Max-width: 100% of parent container
-- White background with rounded corners
-- Centered buttons and links
-
-**Hero Content:**
-- Max-width: 1128px
-- Left-aligned within parent
-- Consistent left edge with navigation
-- All typography aligned on same grid
-
-**Cards Section:**
-- Full-width grid layout
-- Responsive 3-column design
-- Aligns with hero content left edge
-- `auto-fit` for flexible breakpoints
-
-## 🔧 Technical Implementation
-
-### Particle System
-
-Particles are extracted from the logo SVG by sampling pixel data and creating target positions. Each particle has:
-
-- **Position & Velocity** — Current state and momentum
-- **Target Position** — Where the particle should settle
-- **Spring Physics** — Forces pulling toward target
-- **Opacity Control** — Smooth fade transitions
-- **Breathing Animation** — Subtle idle motion when settled
-
-### Mouse Following Logic
-
-The logo center position uses spring physics to smoothly follow the mouse:
-
-```javascript
-// Logo center follows mouse with spring dynamics
-logoState.targetCenterX = mouse.x;
-logoState.targetCenterY = mouse.y;
-
-// Each particle's target updates relative to logo center
-particle.targetX = logoState.centerX + particle.offsetX;
-particle.targetY = logoState.centerY + particle.offsetY;
-```
-
-### Interactive Element Handling
-
-When hovering over buttons or links, particles fade out gracefully:
-
-```javascript
-// On hover: Fade out particles
-for (const particle of particles) {
-  particle.targetOpacity = 0;
-}
-
-// On mouse leave: Fade back in
-for (const particle of particles) {
-  particle.targetOpacity = 1.0;
-}
-```
-
-### Pointer Events Optimization
-
-The header content uses `pointer-events: none` to allow mouse events to reach the canvas below, while interactive elements have `pointer-events: auto`:
-
-```css
-.header-content {
-  pointer-events: none;
+  pointer-events: none;  /* Let canvas receive mouse events */
 }
 
 .header-content a,
-.header-content button,
-.header-content input {
-  pointer-events: auto;
+.header-content button {
+  pointer-events: auto;  /* Re-enable for interactive elements */
 }
 ```
 
-This ensures the particle logo receives mouse events in empty space while maintaining full interactivity for buttons and links.
+**Step 3: JavaScript**
 
-## 🧪 Stack
+```javascript
+import { createAmbientHeader } from './src/ambient.js';
 
-- **Rendering:** Canvas 2D API
-- **Module System:** ES Modules (no build step)
-- **Physics:** Custom spring implementation
-- **Noise:** [simplex-noise](https://www.npmjs.com/package/simplex-noise) (~2kb)
-- **Styling:** CSS custom properties for theming
+const canvas = document.getElementById('ambient-canvas');
+const ambient = createAmbientHeader(canvas, {
+  logoSvgUrl: './assets/YourLogo.svg',
+  particleCount: 500,
+});
+```
 
-## 📊 Performance
+**Required Files:** Copy `src/` directory (ambient.js, particles.js, contours.js, spring.js, noise.js)
 
-| Metric | Target | Notes |
-|--------|--------|-------|
-| Frame Rate | 60fps | Canvas 2D with batched rendering |
-| Bundle Size | ~10-12kb | Vanilla JS + simplex-noise CDN |
-| Particle Count | 500 | Adjustable based on device tier |
-| CPU Usage | <5% idle | Optimized update loop |
+---
 
-## 🎯 Design Decisions
-
-### Why Mouse Following?
-
-The mouse-following logo creates an engaging, playful interaction that:
-- Draws attention to the hero section
-- Creates a sense of direct manipulation and control
-- Reinforces Onebrief's focus on collaboration and real-time interaction
-- Provides immediate visual feedback to user movement
-
-### Why Fade Instead of Snap?
-
-When hovering over interactive elements, particles fade out because:
-- **Smoother UX** — No jarring movements or visual distractions
-- **Maintains Context** — Users don't lose track of the logo position
-- **Elegant Transitions** — Professional polish with smooth opacity changes
-- **Performance** — Simpler than complex position animations
-
-### Why Spring Physics?
-
-Spring-based motion (vs. linear easing) provides:
-- **Organic Feel** — Natural acceleration and deceleration
-- **Momentum Preservation** — Smooth direction changes
-- **Tunable Response** — Easy to adjust feel with stiffness/damping
-- **Interrupt Handling** — Gracefully handles rapid mouse movements
-
-## 🔮 Future Enhancements
-
-**Interaction:**
-- Add subtle particle "breathing" animation when idle
-- Implement particle color shifts on hover
-- Add click ripple effect from cursor position
-
-**Performance:**
-- WebGL renderer for GPU acceleration
-- Particle pooling for zero-allocation updates
-- Adaptive quality based on frame rate
-
-**Features:**
-- Logo state morphing (loading → complete)
-- Scroll-linked parallax effects
-- Touch gesture support for mobile
-
-## 📄 License
-
-This prototype was created as part of a design engineering candidate assignment for Onebrief.
-
-## 🙏 Credits
+## Credits
 
 - **simplex-noise** by Jonas Wagner
 - Spring physics concepts from Josh Comeau
-- Marching squares algorithm from Red Blob Games
 
 ---
 
