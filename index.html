@@ -71,10 +71,12 @@
 
     // Initialize with logo
     const ambient = createAmbientHeader(canvas, {
-      logoSrc: './assets/OneBrief.svg',
+      logoSvgUrl: './assets/OneBrief.svg',
       particleCount: 500,
       mouseRadius: 100,
       timeSpeed: 0.0003,
+      useSamplingDensity: 3,
+      alphaThreshold: 128,
     });
 
     // Wire up controls
