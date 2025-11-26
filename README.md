@@ -175,6 +175,8 @@ If given more time, I would prioritize:
 
 ## Quick Integration
 
+This component is designed to drop into any existing codebase with minimal friction.
+
 **Step 1: HTML Structure**
 
 ```html
@@ -213,7 +215,9 @@ const ambient = createAmbientHeader(canvas, {
 });
 ```
 
-**Required Files:** Copy `src/` directory (ambient.js, particles.js, contours.js, spring.js, noise.js)
+**Required Files:** Copy `src/` directory and include in your project
+
+**Accessibility:** Automatically respects `prefers-reduced-motion` - no additional setup needed
 
 ---
 
