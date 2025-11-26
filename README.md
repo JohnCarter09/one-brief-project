@@ -4,7 +4,7 @@
 > **Author:** John Carter
 > **Date:** November 2025
 
-An interactive hero header featuring a particle-based logo animation that follows the user's mouse cursor with smooth spring physics and intelligent fade interactions.
+An interactive hero header featuring a particle-based Onebrief logo animation that follows the user's mouse cursor with smooth spring physics and intelligent fade interactions.
 
 ![Prototype Preview](./assets/preview.gif)
 
@@ -70,39 +70,45 @@ The mouse-following behavior transforms a static logo into a living, responsive 
 
 ## AI Usage
 
-**Development Approach:**
+# Project Workflow Summary
 
-This prototype was built using AI assistance for rapid prototyping and iteration:
+## 1. Initial Ideation with ChatGPT
+- Began the project by exploring ideas and clarifying requirements using ChatGPT.
+- Leveraged a long context window to refine the core objectives based on the original brief.
+- Developed a solid conceptual foundation before moving into tool exploration.
 
-1. **Initial Implementation** — AI generated the base particle system, spring physics, and canvas rendering pipeline
-2. **Interaction Design** — Multiple iterations to tune mouse-following behavior:
-   - Started with particles snapping to center on hover (felt jarring)
-   - Tried moving particles off-screen (looked broken)
-   - Final solution: smooth fade-out via opacity transitions
-3. **Layout & Alignment** — AI helped debug CSS pointer-events architecture when hero text was blocking canvas mouse events
-4. **Physics Tuning** — Adjusted spring constants through experimentation
-5. **Documentation** — AI assisted with README structure and technical explanations
+## 2. Research & Inspiration
+- Reviewed **OneBrief's website** for design inspiration and identified opportunities to enhance the interface.
+- Explored subtle animation patterns by reviewing components from **React Bits** and **Magic UI**.
+- Used insights from these libraries to inform future component behavior and interaction design.
 
-**Key Prompts Used:**
+## 3. Technical Specification Development
+- Opened **Cloud Desktop** with MCP servers (context7, Exa, Firecrawl, and Playwright) installed.
+- Deepened research into available component patterns and architectural approaches.
+- Generated a **technical requirements document markdownfile** using Claude Desktop.
+- Saved the document locally for use in project setup.
 
-- "The mouse effect is not working, can we fix that?" → Led to pointer-events discovery
-- "The particle logo shoots quickly off the page, I'd like it to just fade out" → Opacity transition solution
-- "The cards should align with the hero content on the same vertical grid" → Layout debugging
+## 4. Project Setup
+- Created a new project folder.
+- Opened the folder in **Cursor**.
+- Activated **Claude Code** inside Cursor to begin the development environment setup.
 
-**AI Strengths:**
+## 5. Agent & Skill Creation
+- Returned to Cloud Desktop to build out automation support.
+- Created:
+  - **Two skilled sub-agents** which you will see once you clone the repo.
+  - **Two Claude Skills**
+- Added these generated files directly into the project folder.
+- Used the `/agents` command inside Cloud Code (in Cursor) to create and register the new sub-agents.
 
-- Rapid prototyping of physics and rendering systems
-- Debugging CSS layout issues
-- Suggesting alternative approaches when initial solutions felt wrong
-
-**Human Contributions:**
-
-- UX judgment ("this feels wonky, let's revert")
-- Design direction (fade vs. snap-back decision)
-- Final parameter tuning for "feel"
-- Architecture review and code organization
+## 6. Version Control & Collaboration
+- Created a new repository in **GitHub**.
+- Pushed the full project structure to GitHub.
+- Pulled the feature branch locally.
+- Began building the system with all components, agents, and resources in place.
 
 ---
+
 
 ## Performance & Accessibility
 
