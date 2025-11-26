@@ -42,28 +42,88 @@ python -m http.server 8000
 
 ### Quick Integration
 
+**Step 1: HTML Structure**
+
 ```html
 <header class="site-header">
   <canvas id="ambient-canvas" aria-hidden="true"></canvas>
   <div class="header-content">
-    <!-- Your navigation and hero content -->
+    <nav>
+      <!-- Your navigation -->
+      <button class="cta-button">Get Started</button>
+    </nav>
+    <section class="hero">
+      <h1>Your Hero Title</h1>
+      <p>Your hero description</p>
+    </section>
   </div>
 </header>
+```
 
+**Step 2: Required CSS (Critical!)**
+
+```css
+.site-header {
+  position: relative;
+  width: 100%;
+  height: 100vh;
+  overflow: hidden;
+}
+
+#ambient-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* CRITICAL: Allow canvas to receive mouse events */
+.header-content {
+  position: relative;
+  z-index: 10;
+  pointer-events: none;  /* Make container transparent to mouse events */
+}
+
+/* Re-enable pointer events for interactive elements */
+.header-content a,
+.header-content button,
+.header-content input {
+  pointer-events: auto;
+}
+```
+
+**Step 3: JavaScript Initialization**
+
+```html
 <script type="module">
   import { createAmbientHeader } from './src/ambient.js';
 
   const canvas = document.getElementById('ambient-canvas');
   const ambient = createAmbientHeader(canvas, {
-    logoSvgUrl: './assets/OneBrief.svg',
-    particleCount: 500,
-    mouseRadius: 150,
-    mouseForce: 1.5,
-    logoSpringStrength: 0.2,
-    logoFriction: 0.85,
+    logoSvgUrl: './assets/YourLogo.svg',  // Path to your logo
+    particleCount: 500,                    // Adjust for performance
+    mouseRadius: 150,                      // Mouse repulsion radius
+    mouseForce: 1.5,                       // Repulsion strength
+    logoSpringStrength: 0.2,               // Logo follow responsiveness
+    logoFriction: 0.85,                    // Logo movement smoothness
+    showContours: false,                   // Background contours (optional)
   });
 </script>
 ```
+
+**Step 4: Include Required Files**
+
+Copy these files to your project:
+- `src/ambient.js` - Main orchestrator
+- `src/particles.js` - Particle system
+- `src/contours.js` - Background contours
+- `src/spring.js` - Physics utilities
+- `src/noise.js` - Noise generation
+- Your logo SVG file
+
+That's it! The particle logo will now follow your mouse cursor and fade out when hovering over buttons and links.
 
 ## 📁 Project Structure
 
