@@ -4,135 +4,25 @@ This file provides guidance to Claude Code when working with the Onebrief Ambien
 
 ## Project Overview
 
-This is a **vanilla JavaScript prototype** for an ambient header animation combining:
-1. Procedurally generated topographic contours (background layer)
-2. Interactive particle-based logo assembly (foreground layer)
+This is a **vanilla JavaScript prototype** featuring an interactive particle-based logo animation that follows the user's mouse cursor.
+
+**Core Interaction:**
+- Particle logo smoothly follows mouse movement
+- Particles fade out when hovering over buttons/navigation
+- Spring physics for natural, organic motion
+- No build system - runs directly in browser
 
 **Tech Stack:**
 - Canvas 2D API (no framework)
 - ES Modules
 - simplex-noise library via CDN
-- Custom implementations (marching squares, spring physics)
+- Custom spring physics implementation
 
 **Constraints:**
-- No build system (direct ES module imports)
 - Lightweight (~10-12kb total bundle)
-- Battery-friendly (60fps target, <5% CPU)
-- Accessibility-first (prefers-reduced-motion support)
-
-## Specialized Agents & Skills
-
-This project has two specialized agents available for domain-specific assistance, each equipped with expert skill modules:
-
-### graphics-engineer
-Use this agent for:
-- Canvas rendering pipeline optimization
-- Procedural generation algorithms (noise, contours, marching squares)
-- Performance profiling and GPU acceleration
-- Visual effects implementation
-- WebGL migration strategies
-
-**Equipped with skills:**
-- `procedural-graphics` (`.claude/skills/procedural-graphics/SKILL.md`)
-
-**Example prompts:**
-- "Optimize my marching squares implementation for better performance"
-- "Help me reduce CPU usage in the contour rendering loop"
-- "Review my particle rendering code for potential bottlenecks"
-
-### motion-engineer
-Use this agent for:
-- Spring physics tuning (stiffness, damping, mass parameters)
-- Gesture and mouse interaction implementation
-- Animation accessibility (prefers-reduced-motion, WCAG compliance)
-- Easing function selection and timing
-- Motion design and choreography
-
-**Equipped with skills:**
-- `motion-physics` (`.claude/skills/motion-physics/SKILL.md`)
-
-**Example prompts:**
-- "Help me tune the spring constants for more organic particle motion"
-- "Implement smooth momentum for the mouse repulsion effect"
-- "Audit my animations for accessibility compliance"
-
-## Available Skills
-
-Skills are reusable knowledge modules that provide expert patterns and implementations:
-
-### procedural-graphics
-**Location:** `.claude/skills/procedural-graphics/SKILL.md`
-
-**Provides:**
-- **Animation Loop** — Fixed timestep update with frame budget management
-- **Simplex Noise with FBM** — Fractal Brownian Motion for organic terrain patterns
-- **Domain Warping** — Coordinate warping through noise for natural shapes
-- **Marching Squares** — Complete 16-case contour extraction (see `references/marching-squares.md`)
-- **Particle Pool** — TypedArray-based particle system for zero-allocation updates
-- **Image to Particles** — Extract particle positions from logo/image alpha channel
-- **Responsive Canvas** — DPI-aware canvas setup for retina displays
-- **Batched Rendering** — Single draw call patterns for performance
-- **Device Tier Detection** — Adaptive settings for mobile/desktop
-
-**Key Code Patterns:**
-```javascript
-// Animation loop with fixed timestep
-class AnimationLoop { ... }
-
-// FBM noise generation
-function createFBM(seed) { ... }
-
-// Marching squares contour extraction
-function marchingSquares(field, width, height, threshold, cellSize) { ... }
-
-// TypedArray particle pool
-class ParticlePool { ... }
-```
-
-### motion-physics
-**Location:** `.claude/skills/motion-physics/SKILL.md`
-
-**Provides:**
-- **Spring Physics Core** — Complete spring implementation with stiffness, damping, mass
-- **Spring Presets** — Pre-tuned settings (snappy, gentle, bouncy, heavy, wobbly, stiff)
-- **2D Particle with Spring** — Simplified spring physics for particles
-- **Mouse Repulsion** — Quadratic falloff force field
-- **Mouse Attraction** — Inverse distance attraction
-- **Mouse Tracking** — Event listener utility class
-- **Staggered Animation** — Random, index-based, and radial stagger patterns
-- **Reduced Motion** — Complete `prefers-reduced-motion` implementation
-- **Accessible Pause Button** — WCAG-compliant pause control
-- **Easing Functions** — Common easing curves and lerp utilities
-
-**Key Code Patterns:**
-```javascript
-// Spring physics
-class Spring {
-  constructor({ stiffness = 100, damping = 10, mass = 1 }) { ... }
-  update(dt) { ... }
-}
-
-// Particle with spring
-class Particle2D { ... }
-
-// Mouse interaction
-function applyRepulsion(particle, mouseX, mouseY, { radius, strength }) { ... }
-
-// Motion accessibility
-class MotionController {
-  get shouldAnimate() { return !this.reduced && !this.paused; }
-}
-```
-
-**Spring Preset Reference:**
-| Feel | Stiffness | Damping | Mass | Use Case |
-|------|-----------|---------|------|----------|
-| Snappy | 300 | 30 | 1 | Buttons, toggles |
-| Gentle | 120 | 14 | 1 | Modals, cards |
-| Bouncy | 180 | 12 | 1 | Notifications |
-| Heavy | 80 | 20 | 2 | Page transitions |
-| Wobbly | 150 | 8 | 1 | Playful UI |
-| Stiff | 400 | 40 | 1 | Precise, no bounce |
+- Performance-first (60fps target)
+- Vanilla JavaScript only
+- No theme toggle (removed)
 
 ## Development Commands
 
@@ -149,477 +39,376 @@ python -m http.server 8000
 
 ```
 onebrief-ambient/
-├── index.html              # Demo page with controls
+├── index.html              # Demo page with hero layout
 ├── src/
-│   ├── ambient.js          # Main orchestrator (imports all systems)
-│   ├── contours.js         # Marching squares + simplex noise
-│   ├── particles.js        # Logo particle system
+│   ├── ambient.js          # Main orchestrator
+│   ├── particles.js        # Particle system with spring physics
+│   ├── contours.js         # Background contours (currently disabled)
 │   ├── spring.js           # Physics utilities
-│   ├── noise.js            # Simplex noise wrapper
-│   └── theme.js            # Color/theming
+│   └── noise.js            # Simplex noise wrapper
 ├── styles/
-│   └── ambient.css         # CSS custom properties + accessibility
+│   └── ambient.css         # CSS with pointer-events handling
 ├── assets/
-│   ├── onebrief-logo.png   # Logo source for particle extraction
-│   └── preview.gif
-├── .claude/
-│   └── agents/
-│       ├── graphics-engineer.md
-│       └── motion-engineer.md
-├── Plan.md                 # Technical architecture document
+│   ├── OneBrief.svg        # Logo for particle extraction
+│   ├── nav-logo.svg        # Navigation logo
+│   └── hero_image.png      # Hero background
 ├── CLAUDE.md               # This file
 └── README.md
 ```
 
-## Architecture Patterns
+## Key Implementation Details
 
-### Module System
+### 1. Mouse-Following Logo System
 
-All code uses **ES Modules** loaded via `<script type="module">`:
-
-```javascript
-// src/ambient.js (main entry point)
-import { createNoise2D } from 'https://cdn.jsdelivr.net/npm/simplex-noise@4.0.3/+esm';
-import { generateContours } from './contours.js';
-import { ParticleSystem } from './particles.js';
-import { springStep } from './spring.js';
-
-export function createAmbientHeader(canvas, options) {
-  // Orchestrates all systems
-}
-```
-
-**Important:** No bundler, no transpilation. Code must run directly in modern browsers (ES2020+).
-
-### Canvas Rendering Loop
+The logo center position follows the mouse using spring physics. Each particle maintains an offset from this center point:
 
 ```javascript
-let animationId;
-let lastTime = 0;
+// In ambient.js
+logoState.targetCenterX = mouse.x;
+logoState.targetCenterY = mouse.y;
 
-function animate(currentTime) {
-  const deltaTime = currentTime - lastTime;
-  lastTime = currentTime;
+// Update logo position with spring physics
+updateLogoPosition();
 
-  // Update systems
-  updateContours(deltaTime);
-  updateParticles(deltaTime);
-
-  // Render layers
-  renderContours(ctx);
-  renderParticles(ctx);
-
-  animationId = requestAnimationFrame(animate);
-}
+// Each particle's target moves with the logo center
+particle.targetX = logoState.centerX + particle.offsetX;
+particle.targetY = logoState.centerY + particle.offsetY;
 ```
-
-### Performance Optimization
-
-**Device Detection:**
-```javascript
-function getPerformanceTier() {
-  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-  const lowMemory = navigator.deviceMemory && navigator.deviceMemory < 4;
-  const lowCPU = navigator.hardwareConcurrency && navigator.hardwareConcurrency < 4;
-
-  return (isMobile || lowMemory || lowCPU) ? 'low' : 'high';
-}
-```
-
-**Particle Count Scaling:**
-- Desktop (high): 800-1000 particles, 35px grid
-- Desktop (average): 500-700 particles, 40px grid
-- Tablet: 300-500 particles, 50px grid
-- Mobile: 200-300 particles, 60px grid
-
-## Core Systems
-
-### 1. Contour Flow Background (`contours.js`)
-
-**Purpose:** Generate drifting topographic lines using simplex noise + marching squares
-
-**Key Functions:**
-- `generateNoiseField(width, height, time, octaves)` — Creates scalar field
-- `marchingSquares(field, threshold, cellSize)` — Extracts contour lines
-- `renderContours(ctx, contours, color, opacity)` — Draws to canvas
 
 **Configuration:**
+- `logoSpringStrength: 0.2` — High value for responsive following
+- `logoFriction: 0.85` — Lower friction for smooth tracking
+- No snap-back to center on mouse leave
+
+### 2. Fade-Out Interaction
+
+When the user hovers over interactive elements (buttons, links), particles fade out smoothly instead of moving off-screen:
+
 ```javascript
-const CONTOUR_CONFIG = {
-  gridSize: 40,           // Cell size (lower = more detail, higher CPU)
-  octaves: 3,             // Noise complexity
-  baseFrequency: 0.008,   // Feature size
-  timeSpeed: 0.0003,      // Animation speed
-  thresholds: [-0.5, -0.2, 0.1, 0.4, 0.7],
-  strokeOpacity: 0.12
-};
-```
+// src/ambient.js
+function handleInteractiveEnter() {
+  // Fade out particles smoothly
+  for (const particle of particles) {
+    particle.targetOpacity = 0;
+  }
+}
 
-**Performance Note:** Marching squares runs every frame. Consider caching contours if FPS drops below 30. **Use graphics-engineer agent for optimization.**
-
-### 2. Logo Particle System (`particles.js`)
-
-**Purpose:** Assemble logo from scattered particles with spring physics
-
-**Particle Class:**
-```javascript
-class Particle {
-  constructor(targetX, targetY, color) {
-    this.x = Math.random() * canvasWidth;   // Random start
-    this.y = Math.random() * canvasHeight;
-    this.vx = 0;
-    this.vy = 0;
-    this.targetX = targetX;  // Logo position
-    this.targetY = targetY;
-    this.color = color;
-    this.size = 2 + Math.random() * 2;
-    this.friction = 0.92 + Math.random() * 0.05;
-    this.springStrength = 0.02;
+function handleInteractiveLeave() {
+  // Fade particles back in
+  for (const particle of particles) {
+    particle.targetOpacity = 1.0;
   }
 }
 ```
 
-**Key Functions:**
-- `extractLogoParticles(image, sampleStep)` — Extract positions from logo PNG
-- `initParticles(targets)` — Create particle instances
-- `updateParticles(deltaTime, mouseX, mouseY)` — Physics + interaction
-- `renderParticles(ctx, particles)` — Draw to canvas
+**How it works:**
+- Interactive elements have event listeners for `mouseenter` and `mouseleave`
+- `targetOpacity` smoothly interpolates toward 0 or 1.0
+- `opacityTransitionSpeed = 0.1` controls fade rate
+- Particles stay in position while fading (no movement)
 
-**Logo Extraction:**
-Uses `canvas.getImageData()` to sample logo image and create particle positions from pixels with alpha > 128.
+### 3. Pointer Events Architecture
 
-### 3. Mouse Interaction
-
-**Repulsion Algorithm:**
-```javascript
-function applyMouseForce(particle, mouseX, mouseY, radius = 100, strength = 5) {
-  const dx = particle.x - mouseX;
-  const dy = particle.y - mouseY;
-  const distance = Math.sqrt(dx * dx + dy * dy);
-
-  if (distance < radius && distance > 0) {
-    const force = (1 - distance / radius) * strength;  // Inverse square falloff
-    const angle = Math.atan2(dy, dx);
-
-    particle.vx += Math.cos(angle) * force;
-    particle.vy += Math.sin(angle) * force;
-  }
-}
-```
-
-**Mouse Tracking:**
-```javascript
-let mouse = { x: null, y: null };
-
-canvas.addEventListener('mousemove', (e) => {
-  const rect = canvas.getBoundingClientRect();
-  mouse.x = e.clientX - rect.left;
-  mouse.y = e.clientY - rect.top;
-});
-
-canvas.addEventListener('mouseleave', () => {
-  mouse.x = null;
-  mouse.y = null;
-});
-```
-
-**Use motion-engineer agent for tuning interaction feel and responsiveness.**
-
-### 4. Spring Physics (`spring.js`)
-
-**Core Algorithm (Hooke's Law):**
-```javascript
-function springStep(particle, dt = 1/60) {
-  // Calculate displacement from target
-  const dx = particle.targetX - particle.x;
-  const dy = particle.targetY - particle.y;
-
-  // Apply spring force (F = -k * displacement)
-  const ax = dx * particle.springStrength;
-  const ay = dy * particle.springStrength;
-
-  // Update velocity
-  particle.vx += ax;
-  particle.vy += ay;
-
-  // Apply friction/damping
-  particle.vx *= particle.friction;
-  particle.vy *= particle.friction;
-
-  // Update position
-  particle.x += particle.vx;
-  particle.y += particle.vy;
-}
-```
-
-**Use motion-engineer agent for tuning spring parameters (stiffness, damping, mass).**
-
-## Theming System
-
-### CSS Custom Properties
+Critical CSS pattern that allows the canvas to receive mouse events while keeping UI elements interactive:
 
 ```css
-:root {
-  --ambient-bg: #ffffff;
-  --ambient-bg-dark: #0a0f1a;
-  --contour-stroke: rgba(0, 40, 80, 0.10);
-  --contour-stroke-dark: rgba(100, 160, 220, 0.12);
-  --particle-color: #3B9DFF;
-  --particle-color-dark: #5BB5FF;
+/* styles/ambient.css */
+.header-content {
+  pointer-events: none;  /* Make container transparent to mouse events */
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --ambient-bg: var(--ambient-bg-dark);
-    --contour-stroke: var(--contour-stroke-dark);
-    --particle-color: var(--particle-color-dark);
+/* Only enable pointer events for interactive elements */
+.header-content a,
+.header-content button,
+.header-content input,
+.header-content select,
+.header-content textarea {
+  pointer-events: auto;  /* Re-enable for UI elements */
+}
+```
+
+**Why this matters:**
+- Without this, hero text blocks mouse events from reaching canvas
+- Allows particles to follow mouse over text areas
+- Maintains full interactivity for buttons and links
+- Hero section text doesn't block particle interaction
+
+### 4. Particle Opacity System
+
+Each particle has both current and target opacity with smooth transitions:
+
+```javascript
+// src/particles.js - Particle class
+this.opacity = 1.0;              // Current opacity
+this.targetOpacity = 1.0;        // Target opacity
+this.opacityTransitionSpeed = 0.1; // Fade speed
+
+// In update() method
+const opacityDiff = this.targetOpacity - this.opacity;
+this.opacity += opacityDiff * this.opacityTransitionSpeed;
+```
+
+**Rendering with opacity:**
+```javascript
+// src/particles.js - renderParticles()
+for (const particle of batch) {
+  ctx.globalAlpha = particle.opacity;  // Use particle's current opacity
+  ctx.fillRect(/*...*/);
+}
+```
+
+### 5. Layout & Alignment System
+
+**Grid Structure:**
+- Container: `max-width: 1440px` (`.header-content`)
+- Navigation: `width: 100%` (full container width)
+- Hero content: `max-width: 1128px, margin: 0` (left-aligned)
+- Cards: No max-width (fills container)
+
+**Alignment:**
+```css
+/* Navigation - full width */
+.header-nav {
+  width: 100%;
+  margin: 0 0 2rem 0;
+}
+
+/* Hero - left aligned, constrained width */
+.hero {
+  max-width: 1128px;
+  margin: 0;  /* No auto centering */
+  padding: 0 1em;
+}
+
+/* Cards - full width */
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+}
+```
+
+## Configuration
+
+### Current Settings (index.html)
+
+```javascript
+const ambient = createAmbientHeader(canvas, {
+  logoSvgUrl: './assets/OneBrief.svg',
+  particleCount: 500,
+  mouseRadius: 150,           // Repulsion radius
+  mouseForce: 1.5,            // Repulsion strength
+  timeSpeed: 0.0003,
+  useSamplingDensity: 3,
+  alphaThreshold: 128,
+  showContours: false,        // Background contours disabled
+  logoSpringStrength: 0.2,    // Logo following responsiveness
+  logoFriction: 0.85,         // Logo movement damping
+});
+```
+
+### Tuning Parameters
+
+**Logo Following Feel:**
+- Increase `logoSpringStrength` for more direct tracking
+- Decrease `logoFriction` for smoother, flowing motion
+- Higher stiffness + lower friction = more direct
+
+**Particle Fade Speed:**
+- Adjust `opacityTransitionSpeed` in `particles.js` (Particle constructor)
+- Lower = slower fade, higher = faster fade
+- Current: `0.1`
+
+**Mouse Repulsion:**
+- `mouseRadius: 150` — How far particles are affected
+- `mouseForce: 1.5` — Strength of repulsion
+
+## Common Tasks
+
+### Adjusting Fade Speed
+
+```javascript
+// src/particles.js - Particle constructor
+this.opacityTransitionSpeed = 0.15;  // Faster fade
+this.opacityTransitionSpeed = 0.05;  // Slower fade
+```
+
+### Changing Logo Following Behavior
+
+```javascript
+// index.html configuration
+logoSpringStrength: 0.3,    // More responsive
+logoFriction: 0.90,         // Less floaty
+```
+
+### Adding New Interactive Elements
+
+Interactive elements automatically get fade-out behavior via event listeners:
+
+```javascript
+// src/ambient.js - play() function
+const interactiveElements = document.querySelectorAll('.header-content a, .header-content button');
+interactiveElements.forEach(element => {
+  element.addEventListener('mouseenter', handleInteractiveEnter);
+  element.addEventListener('mouseleave', handleInteractiveLeave);
+});
+```
+
+To add new element types, update the selector:
+```javascript
+const interactiveElements = document.querySelectorAll(
+  '.header-content a, .header-content button, .custom-interactive'
+);
+```
+
+### Disabling Contours
+
+Contours are currently disabled in the config:
+
+```javascript
+showContours: false,  // Set to true to enable background contours
+```
+
+## Important Patterns
+
+### Event Listener Management
+
+Event listeners are added in `play()` and removed in `destroy()`:
+
+```javascript
+// Add during initialization
+window.addEventListener('resize', handleResize);
+canvas.addEventListener('mousemove', handleMouseMove);
+canvas.addEventListener('mouseleave', handleMouseLeave);
+
+// Remove during cleanup
+window.removeEventListener('resize', handleResize);
+canvas.removeEventListener('mousemove', handleMouseMove);
+// etc.
+```
+
+### Canvas Rendering Pipeline
+
+```javascript
+function renderFrame() {
+  // 1. Clear canvas
+  ctx.clearRect(0, 0, width, height);
+
+  // 2. Draw background (contours - currently disabled)
+  if (config.showContours) {
+    renderContours();
+  }
+
+  // 3. Draw particles with opacity
+  if (config.showParticles && particles.length > 0) {
+    renderParticles(ctx, particles);
   }
 }
 ```
 
-### Reading Theme Colors in JavaScript
+### Spring Physics Update Loop
 
 ```javascript
-function getThemeColors() {
-  const styles = getComputedStyle(document.documentElement);
-  return {
-    bg: styles.getPropertyValue('--ambient-bg').trim(),
-    contourStroke: styles.getPropertyValue('--contour-stroke').trim(),
-    particleColor: styles.getPropertyValue('--particle-color').trim(),
-  };
-}
+// Update logo position (spring toward mouse)
+updateLogoPosition();
 
-// Listen for theme changes
-window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', updateColors);
+// Update all particle targets based on logo position
+updateParticleTargets();
+
+// Update individual particles (spring toward targets)
+updateParticles(particles, time, mouseState);
 ```
-
-## Accessibility Implementation
-
-### Reduced Motion Support
-
-```javascript
-const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
-
-function initAccessibility() {
-  if (reducedMotion.matches) {
-    renderStaticLogo();
-    renderStaticContours();
-  } else {
-    startAnimation();
-  }
-
-  reducedMotion.addEventListener('change', handleMotionPreference);
-}
-
-function handleMotionPreference(e) {
-  if (e.matches) {
-    stopAnimation();
-    renderStaticState();
-  } else {
-    startAnimation();
-  }
-}
-```
-
-**Use motion-engineer agent for accessibility audits and WCAG compliance.**
-
-### Requirements Checklist
-
-- Canvas must have `aria-hidden="true"` (decorative only)
-- Pause/play button must be keyboard accessible
-- No flashing content (well under 3 flashes/second)
-- Static fallback when reduced motion enabled
-- Manual pause control (WCAG SC 2.2.2)
-
-## Common Issues & Solutions
-
-### Issue: Blurry Canvas on Retina Displays
-
-**Solution:** Account for `devicePixelRatio`
-
-```javascript
-function resizeCanvas(canvas) {
-  const rect = canvas.getBoundingClientRect();
-  const dpr = window.devicePixelRatio || 1;
-
-  canvas.width = rect.width * dpr;
-  canvas.height = rect.height * dpr;
-
-  const ctx = canvas.getContext('2d');
-  ctx.scale(dpr, dpr);
-
-  canvas.style.width = rect.width + 'px';
-  canvas.style.height = rect.height + 'px';
-}
-```
-
-**Consult graphics-engineer agent for rendering quality issues.**
-
-### Issue: Poor Performance on Mobile
-
-**Solutions:**
-- Reduce particle count (200-300 max)
-- Increase contour grid size (60px cells)
-- Disable mouse interaction on touch devices
-- Cap frame rate at 30fps if needed
-
-```javascript
-const isTouchDevice = 'ontouchstart' in window;
-if (isTouchDevice) {
-  config.particleCount = 250;
-  config.gridSize = 60;
-  config.enableMouseInteraction = false;
-}
-```
-
-**Consult graphics-engineer agent for performance optimization strategies.**
-
-### Issue: Particles Don't Return to Logo Shape
-
-**Cause:** Spring strength too low or friction too high
-
-**Solution:** Tune physics parameters
-```javascript
-particle.springStrength = 0.02;  // Increase for stronger pull
-particle.friction = 0.92;        // Decrease for less damping
-```
-
-**Consult motion-engineer agent for spring physics tuning.**
-
-### Issue: Contours Look Too Jagged
-
-**Cause:** Grid size too large or missing interpolation
-
-**Solutions:**
-- Reduce `gridSize` (e.g., 40px → 35px)
-- Verify linear interpolation in marching squares edge calculation
-- Add anti-aliasing: `ctx.imageSmoothingEnabled = true;`
-
-**Consult graphics-engineer agent for contour quality improvements.**
 
 ## Development Guidelines
 
-### When Adding New Features
+### When Modifying Interactions
 
-1. **Check Performance Impact**
-   - Monitor FPS in Chrome DevTools Performance tab
-   - Test on low-end device (or throttle CPU 4x)
-   - Ensure <5% CPU usage when idle
-   - **Use graphics-engineer agent for performance analysis**
+1. **Always test with mouse and touch** — Both interaction modes should work
+2. **Check pointer events** — Make sure canvas receives events in empty areas
+3. **Verify interactive elements** — Buttons/links should remain clickable
+4. **Test fade behavior** — Ensure smooth transitions without flicker
 
-2. **Maintain Accessibility**
-   - Ensure new animations respect `prefers-reduced-motion`
-   - Keep pause/play control functional
-   - Don't introduce flashing content
-   - **Use motion-engineer agent for accessibility audits**
+### When Adjusting Layout
 
-3. **Follow Module Pattern**
-   - Export pure functions where possible
-   - Avoid global state
-   - Use ES Modules (no CommonJS)
+1. **Check alignment** — Hero and navigation should align on left edge
+2. **Test responsiveness** — Verify mobile breakpoints
+3. **Maintain grid** — Keep 1128px content constraint
+4. **Full-width elements** — Cards should fill container
 
-4. **Test Theming**
-   - Verify light/dark mode appearance
-   - Use CSS custom properties for colors
-   - Test manual theme switching
+### When Tuning Physics
 
-### When to Use Specialized Agents
+1. **Start with presets** — Use spring presets from `particles.js`
+2. **Test extremes** — Try very high/low values to understand behavior
+3. **Record before/after** — Capture video to compare changes
+4. **User test** — Get feedback on "feel"
 
-**Use graphics-engineer when:**
-- Implementing or optimizing rendering code
-- Working with Canvas 2D drawing operations
-- Debugging visual artifacts or performance issues
-- Planning algorithm implementations (marching squares, noise, etc.)
-- Considering GPU acceleration or WebGL migration
+## Known Implementation Details
 
-**Use motion-engineer when:**
-- Tuning animation parameters (springs, easing, timing)
-- Implementing gesture or mouse interactions
-- Ensuring accessibility compliance for animations
-- Creating choreographed motion sequences
-- Debugging animation "feel" issues
+### No Theme Toggle
 
-### When Debugging
+Theme toggle was removed per user request. The app uses light mode styling with no dark mode switcher.
 
-**Performance Issues:**
-```javascript
-// Add FPS counter
-let frameCount = 0;
-let lastFpsTime = performance.now();
+### No Snap-Back Behavior
 
-function updateFPS() {
-  frameCount++;
-  const now = performance.now();
-  if (now - lastFpsTime >= 1000) {
-    console.log('FPS:', frameCount);
-    frameCount = 0;
-    lastFpsTime = now;
-  }
-}
-```
+When the mouse leaves the canvas or interactive element, the logo stays in its current position rather than snapping back to center. This prevents jarring movements.
 
-**Physics Issues:**
-```javascript
-// Visualize spring forces
-ctx.strokeStyle = 'red';
-ctx.beginPath();
-ctx.moveTo(particle.x, particle.y);
-ctx.lineTo(particle.targetX, particle.targetY);
-ctx.stroke();
-```
+### Particle Extraction from SVG
 
-**Contour Generation:**
-```javascript
-// Log noise field values
-console.table(noiseField.slice(0, 100));  // First 100 values
-```
+Particles are extracted by:
+1. Loading SVG as image
+2. Drawing to off-screen canvas
+3. Reading pixel data with `getImageData()`
+4. Creating particle positions from pixels with alpha > threshold
 
-## Deployment
+### Interactive Element Detection
 
-### Production Checklist
+All `<a>` and `<button>` elements within `.header-content` automatically get fade-out behavior via `querySelectorAll()` and event listeners.
 
-- [ ] Test in Chrome, Firefox, Safari, Edge
-- [ ] Verify mobile performance (real device testing)
-- [ ] Test reduced motion on macOS/Windows
-- [ ] Check retina display rendering
-- [ ] Validate accessibility (keyboard navigation, pause control)
-- [ ] Measure bundle size (Network tab)
-- [ ] Capture screenshots/GIF for documentation
-- [ ] Deploy to static hosting (Vercel, Netlify, GitHub Pages)
+## Troubleshooting
 
-### Hosting Options
+### Particles Not Following Mouse
 
-**Vercel:**
-```bash
-vercel --prod
-```
+**Check:**
+- Canvas element exists and is rendering
+- Mouse events are firing (check console logs)
+- `pointer-events: none` is set on `.header-content`
+- `logoSpringStrength` is not too low
 
-**Netlify:**
-```bash
-netlify deploy --prod
-```
+### Fade Not Working on Hover
 
-**GitHub Pages:**
-```bash
-# Push to gh-pages branch
-git subtree push --prefix . origin gh-pages
-```
+**Check:**
+- Event listeners are attached to interactive elements
+- `handleInteractiveEnter/Leave` functions are defined
+- `targetOpacity` is being set correctly
+- Particles have `opacity` and `targetOpacity` properties
 
-## References
+### Layout Misalignment
 
-### Key Documentation
+**Check:**
+- `.hero` has `margin: 0` (not `margin: 0 auto`)
+- `.header-nav` has `width: 100%`
+- Container has correct `max-width: 1440px`
 
-- [simplex-noise npm](https://www.npmjs.com/package/simplex-noise)
-- [Canvas 2D API (MDN)](https://developer.mozilla.org/en-US/docs/Web/API/Canvas_API)
-- [Marching Squares Algorithm](https://en.wikipedia.org/wiki/Marching_squares)
-- [prefers-reduced-motion (MDN)](https://developer.mozilla.org/en-US/docs/Web/CSS/@media/prefers-reduced-motion)
+### Performance Issues
 
-### Helpful Tutorials
+**Solutions:**
+- Reduce `particleCount` (try 300-400)
+- Disable contours (`showContours: false`)
+- Lower `mouseRadius` to reduce calculations
+- Check FPS in DevTools Performance panel
 
-- [Red Blob Games: Terrain from Noise](https://www.redblobgames.com/maps/terrain-from-noise/)
-- [Josh Comeau: Spring Physics](https://www.joshwcomeau.com/animation/a-friendly-introduction-to-spring-physics/)
-- [Interactive Marching Squares](https://skadewdl3.vercel.app/blog/1-marching-squares)
+## Commit Message Guidelines
+
+- No attribution to Claude or Anthropic
+- No emojis
+- Formal but concise
+- Direct and descriptive
+
+**Examples:**
+- "Add particle fade-out on interactive element hover"
+- "Fix layout alignment for hero content"
+- "Update mouse following spring parameters"
+- "Remove theme toggle from navigation"
 
 ---
 
-*This file should be updated as the prototype evolves. Keep it concise and actionable.*
+*Keep this file updated as the prototype evolves.*
