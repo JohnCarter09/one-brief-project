@@ -124,12 +124,12 @@ This prototype was built using AI assistance for rapid prototyping and iteration
 ### Accessibility
 
 **Current Implementation:**
+- **Reduced Motion Support** — Respects `prefers-reduced-motion` system setting; shows static logo instead of animation
 - Canvas marked `aria-hidden="true"` (decorative only)
 - All interactive elements remain keyboard accessible
 - No flashing content (well under WCAG 3 flashes/second threshold)
 
 **Not Yet Implemented:**
-- `prefers-reduced-motion` support (would show static logo)
 - Manual pause/play control (WCAG SC 2.2.2)
 - Focus indicators for keyboard navigation
 
@@ -141,17 +141,9 @@ If given more time, I would prioritize:
 
 ### 1. Accessibility Compliance (Highest Priority)
 
-```javascript
-// Respect user motion preferences
-const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
-if (reducedMotion.matches) {
-  renderStaticLogo();  // Skip animation
-}
-```
-
-- Add pause/play button for WCAG SC 2.2.2 compliance
-- Implement `prefers-reduced-motion` with static fallback
-- Add keyboard focus indicators
+- Add manual pause/play button for WCAG SC 2.2.2 compliance
+- Add keyboard focus indicators for interactive elements
+- Test with screen readers to ensure non-disruptive experience
 
 ### 2. Performance Enhancements
 

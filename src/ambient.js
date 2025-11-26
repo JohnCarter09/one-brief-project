@@ -648,6 +648,49 @@ export function createAmbientHeader(canvas, options = {}) {
   }
 
   /**
+   * Render static logo when reduced motion is preferred
+   */
+  function renderStaticLogo() {
+    setupCanvas();
+
+    // Initialize particles at their target positions (no animation)
+    const physicsConfig = getSpringPreset(config.particleSpringFeel);
+
+    if (config.logoSvgUrl) {
+      loadLogoAndInitParticles(physicsConfig).then(() => {
+        // Position particles at targets immediately
+        for (const particle of particles) {
+          particle.x = logoState.centerX + particle.offsetX;
+          particle.y = logoState.centerY + particle.offsetY;
+          particle.opacity = 1.0;
+        }
+
+        // Render once (no animation loop)
+        ctx.clearRect(0, 0, width, height);
+        renderParticles(ctx, particles);
+      });
+    }
+
+    // Handle resize for static logo
+    window.addEventListener('resize', () => {
+      setupCanvas();
+      if (particles.length > 0) {
+        // Re-center logo
+        logoState.centerX = width / 2;
+        logoState.centerY = height / 2;
+
+        for (const particle of particles) {
+          particle.x = logoState.centerX + particle.offsetX;
+          particle.y = logoState.centerY + particle.offsetY;
+        }
+
+        ctx.clearRect(0, 0, width, height);
+        renderParticles(ctx, particles);
+      }
+    });
+  }
+
+  /**
    * Gets current performance stats
    * @returns {Object} Performance statistics
    */
@@ -664,6 +707,8 @@ export function createAmbientHeader(canvas, options = {}) {
   // Auto-start unless user prefers reduced motion
   if (!prefersReducedMotion) {
     play();
+  } else {
+    renderStaticLogo();
   }
 
   // Return controller API
