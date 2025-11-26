@@ -2,6 +2,8 @@
 
 ![CleanShot 2025-11-26 at 13 53 16](https://github.com/user-attachments/assets/b09651bf-f880-4164-98c0-eeaebf4246cf)
 
+checkout the prototype on Netlify - https://one-brief.netlify.app/
+
 
 # Onebrief Ambient Motion Prototype
 
