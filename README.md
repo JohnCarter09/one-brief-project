@@ -1,3 +1,6 @@
+
+![CleanShot 2025-11-26 at 13 51 15](https://github.com/user-attachments/assets/11e29cd7-585e-4fe9-a53e-c6762cb97250)
+
 # Onebrief Ambient Motion Prototype
 
 > **Design Engineering Candidate Assignment**
