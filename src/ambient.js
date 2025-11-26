@@ -7,10 +7,18 @@
  * @module ambient
  */
 
-import { createNoise3D } from './noise.js';
-import { MarchingSquares } from './contours.js';
-import { ParticleSystem } from './particles.js';
-import { Spring } from './spring.js';
+import { createFBM, generateNoiseField } from './noise.js';
+import { marchingSquares, renderMultiContours } from './contours.js';
+import { springStep, applyRepulsion } from './spring.js';
+import {
+  Particle,
+  extractParticlePositions,
+  initializeParticles,
+  updateParticles,
+  renderParticles,
+  getSpringPreset,
+  getReducedMotionConfig
+} from './particles.js';
 
 /**
  * Default configuration for ambient animation
@@ -23,12 +31,11 @@ import { Spring } from './spring.js';
  * @property {number} particleCount - Number of particles (default: 500)
  * @property {number} mouseRadius - Mouse influence radius in pixels (default: 100)
  * @property {number} mouseForce - Mouse repulsion force strength (default: 0.5)
- * @property {number} particleSpeed - Base particle movement speed (default: 0.5)
+ * @property {string} particleSpringFeel - Spring preset: 'snappy', 'smooth', 'bouncy', 'heavy' (default: 'smooth')
  * @property {boolean} showContours - Whether to draw contour lines (default: true)
  * @property {boolean} showParticles - Whether to draw particles (default: true)
  * @property {string} backgroundColor - Canvas background color (default: '#0a0e1a')
  * @property {string} contourColor - Contour line color (default: 'rgba(255, 255, 255, 0.15)')
- * @property {string} particleColor - Particle color (default: 'rgba(255, 255, 255, 0.6)')
  */
 const DEFAULT_CONFIG = {
   gridSize: 40,
@@ -39,12 +46,14 @@ const DEFAULT_CONFIG = {
   particleCount: 500,
   mouseRadius: 100,
   mouseForce: 0.5,
-  particleSpeed: 0.5,
+  particleSpringFeel: 'smooth',
   showContours: true,
   showParticles: true,
   backgroundColor: '#0a0e1a',
   contourColor: 'rgba(255, 255, 255, 0.15)',
-  particleColor: 'rgba(255, 255, 255, 0.6)',
+  logoSvgUrl: null,
+  useSamplingDensity: 2,
+  alphaThreshold: 128,
 };
 
 /**
@@ -73,10 +82,11 @@ export function createAmbientHeader(canvas, options = {}) {
   let height = 0;
 
   // Core systems
-  let noise3D = null;
-  let marchingSquares = null;
-  let particleSystem = null;
-  let mouseSpring = null;
+  let fbm = null;
+  let noiseField = null;
+  let particles = [];
+  let cols = 0;
+  let rows = 0;
 
   // Mouse tracking
   const mouse = {
@@ -117,44 +127,96 @@ export function createAmbientHeader(canvas, options = {}) {
    * Initializes all animation systems
    */
   function initializeSystems() {
-    // Create noise generator
-    noise3D = createNoise3D();
+    // Create FBM noise generator with random seed
+    fbm = createFBM();
 
-    // Calculate grid dimensions
-    const cols = Math.ceil(width / config.gridSize) + 1;
-    const rows = Math.ceil(height / config.gridSize) + 1;
+    // Calculate grid dimensions for marching squares
+    cols = Math.ceil(width / config.gridSize) + 1;
+    rows = Math.ceil(height / config.gridSize) + 1;
 
-    // Initialize marching squares for contour generation
-    marchingSquares = new MarchingSquares(cols, rows, config.gridSize);
+    // Initialize noise field
+    noiseField = new Float32Array(cols * rows);
 
-    // Initialize particle system
-    particleSystem = new ParticleSystem(config.particleCount, width, height);
+    // Initialize particles
+    const physicsConfig = getSpringPreset(config.particleSpringFeel);
 
-    // Initialize mouse tracking with spring physics
-    mouseSpring = new Spring(0.15, 0.8); // stiffness, damping
+    if (config.logoSvgUrl) {
+      // Load logo and extract particle positions
+      loadLogoAndInitParticles(physicsConfig);
+    } else {
+      // Create particles at random positions
+      const targetPositions = [];
+      for (let i = 0; i < config.particleCount; i++) {
+        targetPositions.push({
+          x: Math.random() * width,
+          y: Math.random() * height,
+          color: 'rgba(255, 255, 255, 0.8)'
+        });
+      }
+      particles = initializeParticles(targetPositions, { width, height }, physicsConfig);
+    }
   }
 
   /**
-   * Fractional Brownian Motion - layers multiple octaves of noise
-   * @param {number} x - X coordinate
-   * @param {number} y - Y coordinate
-   * @param {number} z - Z coordinate (time)
-   * @returns {number} Combined noise value [-1, 1]
+   * Load logo SVG and extract particle target positions
+   * @param {Object} physicsConfig - Spring physics parameters
    */
-  function fbm(x, y, z) {
-    let value = 0;
-    let amplitude = 1;
-    let frequency = config.baseFrequency;
-    let maxValue = 0;
+  async function loadLogoAndInitParticles(physicsConfig) {
+    try {
+      const response = await fetch(config.logoSvgUrl);
+      const svgText = await response.text();
+      const parser = new DOMParser();
+      const svgDoc = parser.parseFromString(svgText, 'image/svg+xml');
 
-    for (let i = 0; i < config.octaves; i++) {
-      value += amplitude * noise3D(x * frequency, y * frequency, z);
-      maxValue += amplitude;
-      amplitude *= 0.5;
-      frequency *= 2;
+      // Create off-screen canvas to render SVG
+      const logoCanvas = document.createElement('canvas');
+      logoCanvas.width = width;
+      logoCanvas.height = height;
+      const logoCtx = logoCanvas.getContext('2d');
+
+      // Create image from SVG
+      const img = new Image();
+      img.onload = () => {
+        logoCtx.drawImage(img, 0, 0, width, height);
+
+        // Extract particle positions from image
+        const targetPositions = extractParticlePositions(
+          img,
+          config.useSamplingDensity,
+          config.alphaThreshold
+        );
+
+        // Initialize particles at random positions, spring toward logo
+        particles = initializeParticles(
+          targetPositions.length > 0 ? targetPositions : createRandomPositions(),
+          { width, height },
+          physicsConfig
+        );
+      };
+
+      img.src = 'data:image/svg+xml;base64,' + btoa(svgText);
+    } catch (error) {
+      console.warn('Failed to load logo, using random particle positions:', error);
+      // Fallback to random positions
+      const targetPositions = createRandomPositions();
+      particles = initializeParticles(targetPositions, { width, height }, physicsConfig);
     }
+  }
 
-    return value / maxValue;
+  /**
+   * Create random particle target positions as fallback
+   * @returns {Array} Array of {x, y, color} objects
+   */
+  function createRandomPositions() {
+    const positions = [];
+    for (let i = 0; i < config.particleCount; i++) {
+      positions.push({
+        x: Math.random() * width,
+        y: Math.random() * height,
+        color: 'rgba(255, 255, 255, 0.8)'
+      });
+    }
+    return positions;
   }
 
   /**
@@ -162,48 +224,37 @@ export function createAmbientHeader(canvas, options = {}) {
    * @param {number} currentTime - Current animation time
    */
   function updateNoiseField(currentTime) {
-    const field = marchingSquares.field;
-    const cols = marchingSquares.cols;
-    const rows = marchingSquares.rows;
-    const gridSize = config.gridSize;
-
-    // Performance: Batch field updates
     for (let j = 0; j < rows; j++) {
       for (let i = 0; i < cols; i++) {
-        const x = i * gridSize;
-        const y = j * gridSize;
-        field[j * cols + i] = fbm(x, y, currentTime);
+        const x = i * config.gridSize;
+        const y = j * config.gridSize;
+        const index = j * cols + i;
+
+        // Sample noise with time offset
+        noiseField[index] = fbm(
+          x * config.baseFrequency,
+          y * config.baseFrequency,
+          {
+            octaves: config.octaves,
+            frequency: 1,
+            lacunarity: 2,
+            persistence: 0.5
+          }
+        );
       }
     }
   }
 
   /**
-   * Updates mouse position with spring physics
-   * @param {number} dt - Delta time in seconds
+   * Updates mouse position (simple follow, no spring)
    */
-  function updateMouse(dt) {
-    if (!mouse.isActive) return;
-
-    // Apply spring physics for smooth mouse following
-    const springResult = mouseSpring.update(
-      mouse.x,
-      mouse.targetX,
-      dt
-    );
-
-    mouse.x = springResult.position;
-
-    const springResultY = mouseSpring.update(
-      mouse.y,
-      mouse.targetY,
-      dt
-    );
-
-    mouse.y = springResultY.position;
+  function updateMouse() {
+    // Mouse position is updated in real-time via event handlers
+    // No smoothing needed - direct movement is more responsive
   }
 
   /**
-   * Renders contour lines
+   * Renders contour lines using marching squares
    */
   function renderContours() {
     if (!config.showContours) return;
@@ -213,42 +264,16 @@ export function createAmbientHeader(canvas, options = {}) {
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
 
-    // Draw contours at each threshold level
-    for (const threshold of config.thresholds) {
-      const segments = marchingSquares.march(threshold);
-
-      if (segments.length === 0) continue;
-
-      // Batch all segments into a single path for performance
-      ctx.beginPath();
-      for (const segment of segments) {
-        ctx.moveTo(segment.x1, segment.y1);
-        ctx.lineTo(segment.x2, segment.y2);
-      }
-      ctx.stroke();
-    }
-  }
-
-  /**
-   * Renders particle system
-   */
-  function renderParticles() {
-    if (!config.showParticles) return;
-
-    const particles = particleSystem.particles;
-
-    // Draw particles as circles
-    ctx.fillStyle = config.particleColor;
-
-    for (const particle of particles) {
-      // Calculate particle size based on noise influence
-      const noiseValue = fbm(particle.x, particle.y, time * 0.5);
-      const size = 1 + noiseValue * 0.8;
-
-      ctx.beginPath();
-      ctx.arc(particle.x, particle.y, size, 0, Math.PI * 2);
-      ctx.fill();
-    }
+    renderMultiContours(
+      ctx,
+      noiseField,
+      cols,
+      rows,
+      config.gridSize,
+      config.thresholds,
+      config.contourColor,
+      1
+    );
   }
 
   /**
@@ -275,33 +300,20 @@ export function createAmbientHeader(canvas, options = {}) {
     time += deltaTime * timeStep;
 
     // Update systems
-    updateMouse(deltaTime);
+    updateMouse();
     updateNoiseField(time);
 
-    // Update particles with noise-based flow field
-    particleSystem.update(
-      deltaTime * config.particleSpeed,
-      (x, y) => {
-        // Create flow field from noise gradients
-        const epsilon = 5;
-        const noiseHere = fbm(x, y, time);
-        const noiseRight = fbm(x + epsilon, y, time);
-        const noiseUp = fbm(x, y + epsilon, time);
+    // Build mouse state for particle interaction
+    const mouseState = mouse.isActive ? {
+      active: true,
+      x: mouse.x,
+      y: mouse.y,
+      radius: config.mouseRadius,
+      strength: config.mouseForce
+    } : null;
 
-        // Calculate gradient (curl noise for more interesting flow)
-        const dx = (noiseRight - noiseHere) / epsilon;
-        const dy = (noiseUp - noiseHere) / epsilon;
-
-        // Perpendicular vector for curl
-        return { dx: -dy, dy: dx };
-      },
-      mouse.isActive ? {
-        x: mouse.x,
-        y: mouse.y,
-        radius: config.mouseRadius,
-        force: config.mouseForce,
-      } : null
-    );
+    // Update particles with spring physics
+    updateParticles(particles, time, mouseState);
 
     // Render
     renderFrame();
@@ -314,7 +326,7 @@ export function createAmbientHeader(canvas, options = {}) {
    * Renders a complete frame
    */
   function renderFrame() {
-    // Clear canvas
+    // Clear canvas with background color
     ctx.fillStyle = config.backgroundColor;
     ctx.fillRect(0, 0, width, height);
 
@@ -322,7 +334,9 @@ export function createAmbientHeader(canvas, options = {}) {
     renderContours();
 
     // Draw particles on top
-    renderParticles();
+    if (config.showParticles && particles.length > 0) {
+      renderParticles(ctx, particles);
+    }
   }
 
   /**
@@ -345,6 +359,8 @@ export function createAmbientHeader(canvas, options = {}) {
     const rect = canvas.getBoundingClientRect();
     mouse.targetX = event.clientX - rect.left;
     mouse.targetY = event.clientY - rect.top;
+    mouse.x = mouse.targetX;
+    mouse.y = mouse.targetY;
     mouse.isActive = true;
   }
 
@@ -355,6 +371,8 @@ export function createAmbientHeader(canvas, options = {}) {
     mouse.isActive = false;
     mouse.targetX = -1000;
     mouse.targetY = -1000;
+    mouse.x = -1000;
+    mouse.y = -1000;
   }
 
   /**
@@ -367,6 +385,8 @@ export function createAmbientHeader(canvas, options = {}) {
     const touch = event.touches[0];
     mouse.targetX = touch.clientX - rect.left;
     mouse.targetY = touch.clientY - rect.top;
+    mouse.x = mouse.targetX;
+    mouse.y = mouse.targetY;
     mouse.isActive = true;
   }
 
@@ -442,7 +462,7 @@ export function createAmbientHeader(canvas, options = {}) {
     Object.assign(config, newConfig);
 
     // Reinitialize if structural parameters changed
-    if (newConfig.gridSize || newConfig.particleCount) {
+    if (newConfig.gridSize || newConfig.particleCount || newConfig.particleSpringFeel) {
       initializeSystems();
     }
   }
@@ -467,6 +487,11 @@ export function createAmbientHeader(canvas, options = {}) {
 
     // Clear canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Clear resources
+    particles = [];
+    noiseField = null;
+    fbm = null;
   }
 
   /**
@@ -476,8 +501,8 @@ export function createAmbientHeader(canvas, options = {}) {
   function getStats() {
     return {
       fps,
-      particleCount: config.particleCount,
-      gridCells: marchingSquares ? marchingSquares.cols * marchingSquares.rows : 0,
+      particleCount: particles.length,
+      gridCells: cols * rows,
       isPaused,
       prefersReducedMotion,
     };
@@ -530,7 +555,7 @@ export function createAmbientHeaderWithControls(canvas, controlElements = {}) {
 
   // Wire up sliders
   if (controlElements.sliders) {
-    const { particleCount, particleSpeed, mouseRadius, timeSpeed } = controlElements.sliders;
+    const { particleCount, timeSpeed, mouseRadius } = controlElements.sliders;
 
     if (particleCount) {
       particleCount.addEventListener('input', (e) => {
@@ -538,21 +563,15 @@ export function createAmbientHeaderWithControls(canvas, controlElements = {}) {
       });
     }
 
-    if (particleSpeed) {
-      particleSpeed.addEventListener('input', (e) => {
-        controller.updateConfig({ particleSpeed: parseFloat(e.target.value) });
+    if (timeSpeed) {
+      timeSpeed.addEventListener('input', (e) => {
+        controller.updateConfig({ timeSpeed: parseFloat(e.target.value) });
       });
     }
 
     if (mouseRadius) {
       mouseRadius.addEventListener('input', (e) => {
         controller.updateConfig({ mouseRadius: parseFloat(e.target.value) });
-      });
-    }
-
-    if (timeSpeed) {
-      timeSpeed.addEventListener('input', (e) => {
-        controller.updateConfig({ timeSpeed: parseFloat(e.target.value) });
       });
     }
   }
