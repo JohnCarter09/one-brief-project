@@ -1,5 +1,7 @@
 
-![CleanShot 2025-11-26 at 13 51 15](https://github.com/user-attachments/assets/11e29cd7-585e-4fe9-a53e-c6762cb97250)
+
+![CleanShot 2025-11-26 at 13 53 16](https://github.com/user-attachments/assets/b09651bf-f880-4164-98c0-eeaebf4246cf)
+
 
 # Onebrief Ambient Motion Prototype
 
