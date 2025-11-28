@@ -119,7 +119,7 @@ The mouse-following behavior transforms a static logo into a living, responsive 
 - Used insights from these libraries to inform future component behavior and interaction design.
 
 ## 3. Technical Specification Development
-- Opened **Cloud Desktop** with MCP servers (context7, Exa, Firecrawl, and Playwright) installed.
+- Opened **Claude Desktop** with MCP servers (context7, Exa, Firecrawl, and Playwright) installed.
 - Deepened research into available component patterns and architectural approaches.
 - Generated a **technical requirements document markdownfile** using Claude Desktop.
 - Saved the document locally for use in project setup.
@@ -130,7 +130,7 @@ The mouse-following behavior transforms a static logo into a living, responsive 
 - Activated **Claude Code** inside Cursor to begin the development environment setup.
 
 ## 5. Agent & Skill Creation
-- Returned to Cloud Desktop to build out automation support.
+- Returned to Claude Desktop to build out automation support.
 - Created:
   - **Two skilled sub-agents** which you will see once you clone the repo.
   - **Two Claude Skills**
@@ -142,6 +142,10 @@ The mouse-following behavior transforms a static logo into a living, responsive 
 - Pushed the full project structure to GitHub.
 - Pulled the feature branch locally.
 - Began building the system with all components, agents, and resources in place.
+
+- ## 6. Deployment
+- Deployed the project to Netlify for anyone to preview.
+- https://one-brief.netlify.app/
 
 ---
 
